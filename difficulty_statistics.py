@@ -2,18 +2,20 @@
 # -*- coding: utf-8 -*-
 
 
-import time
 import csv
-import numpy
+import time
+
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
-from bitcoinrpc.authproxy import AuthServiceProxy
+import numpy
 from bitcoin.core import serialize as ser
+from bitcoinrpc.authproxy import AuthServiceProxy
+# import scipy.stats
+from matplotlib.ticker import FormatStrFormatter
 
 mainnet = {
     'rpc_user': 'bitcoinrpc',
     'rpc_password': '123456',
-    'rpc_host': '127.0.0.1',
+    'rpc_host': '172.168.0.103',
     'rpc_port': 7116,
     'fork_height': 495867,
     'pow_limit': 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -29,10 +31,10 @@ testnet = {
 }
 
 regtest = {
-    'rpc_user': 'user',
-    'rpc_password': 'pass',
+    'rpc_user': 'bitcoinrpc',
+    'rpc_password': '123456',
     'rpc_host': '127.0.0.1',
-    'rpc_port': 16101,
+    'rpc_port': 27116,
     'fork_height': 1,
     'pow_limit': 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 }
@@ -115,77 +117,42 @@ def read_blocks_from_csv():
 def draw_solve_time_diagram(block_list):
     height_list = []
     solve_time_list = []
-    for i in range(1, len(block_list)):
-        height_list.append(block_list[i]['height'])
-        solve_time_list.append((block_list[i]['time'] - block_list[i-1]['time'])/60)
-
-    # plt.subplot(211)
-    plt.plot(height_list, solve_time_list, marker='o', label='solve time diagram')
-    plt.xlabel('height')
-    plt.ylabel('solve time/minutes')
-    ax = plt.gca()
-    ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-
-    # x = []
-    # y = []
-    # solve_time_array = numpy.array(solve_time_list)
-    # for i in range(3):
-    #     count = ((i*5 <= solve_time_array) & (solve_time_array < (i+1)*5)).sum()
-    #     if count == 0:
-    #         continue
-    #     x.append(i*5)
-    #     y.append(count)
-    # count = ((i+1) * 5 <= solve_time_array).sum()
-    # if count != 0:
-    #     x.append((i+1)*5)
-    #     y.append(count)
-    #
-    # plt.subplot(212)
-    # plt.bar([i + 2.5 for i in x], y, width=2.5)
-    # plt.xlabel('solve time')
-    # plt.ylabel('blocks')
-    # ax = plt.gca()
-    # ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-    #
-    # plt.subplots_adjust(wspace=0, hspace=0.4)
-
-    plt.show()
-
-
-def draw_difficulty_diagram(block_list):
-    height_list = []
     difficulty_list = []
     for i in range(1, len(block_list)):
         height_list.append(block_list[i]['height'])
+        solve_time_list.append((block_list[i]['time'] - block_list[i-1]['time'])/60)
         difficulty_list.append(block_list[i]['difficulty'])
-    plt.plot(height_list, difficulty_list, marker='o', label='difficulty changes')
+
+    mean = numpy.mean(solve_time_list)
+    sigma = numpy.var(solve_time_list, ddof=1)
+    # norm = scipy.stats.norm.pdf(solve_time_list, mean, sigma)
+    print('The average solvetime:', mean)
+    print('The standard deviation:', sigma)
+
+    ax = plt.subplot(211)
+    plt.plot(height_list, solve_time_list, marker='.', label='solve time diagram')
+    plt.xlabel('height')
+    plt.ylabel('solve time/minutes')
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+    ax.minorticks_on()
+    # Customize the major grid
+    ax.grid(which='major', linestyle='-', linewidth='0.5', color='red')
+    # Customize the minor grid
+    ax.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
+
+    ax = plt.subplot(212)
+    plt.plot(height_list, difficulty_list, marker='.', label='difficulty changes')
     plt.xlabel('height')
     plt.ylabel('difficulty')
-    ax = plt.gca()
     ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-    plt.show()
+    ax.minorticks_on()
+    # Customize the major grid
+    ax.grid(which='major', linestyle='-', linewidth='0.5', color='red')
+    # Customize the minor grid
+    ax.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
 
+    plt.subplots_adjust(wspace=0, hspace=0.4)
 
-def draw_solve_time_pie(block_list):
-    solve_time_list = []
-    for i in range(1, len(block_list)):
-        solve_time_list.append((block_list[i]['time'] - block_list[i-1]['time'])/60)
-
-    x = []
-    labels = []
-    solve_time_array = numpy.array(solve_time_list)
-    for i in range(3):
-        count = ((i*5 <= solve_time_array) & (solve_time_array < (i+1)*5)).sum()
-        if count == 0:
-            continue
-        x.append(count)
-        labels.append('%s~%s minutes' % (i * 5, (i + 1) * 5))
-    count = ((i+1) * 5 <= solve_time_array).sum()
-    if count != 0:
-        x.append(count)
-        labels.append('>%s minutes' % ((i + 1) * 5))
-
-    plt.pie(x, labels=labels, autopct='%3.1f %%')
     plt.show()
 
 
@@ -301,12 +268,10 @@ def lwma_next_work_required(block_list):
 
 # set_net_type('regtest')
 
-# write_blocks_to_csv(get_lastest_blocks(100))
-# write_blocks_to_csv(get_blocks(288, 315))
+# write_blocks_to_csv(get_lastest_blocks(40))
+# write_blocks_to_csv(get_blocks(288, 698))
 
 # get_next_work_required(read_blocks_from_csv())
 # lwma_next_work_required(read_blocks_from_csv())
 
 # draw_solve_time_diagram(read_blocks_from_csv())
-# draw_difficulty_diagram(read_blocks_from_csv())
-# draw_solve_time_pie(read_blocks_from_csv())
